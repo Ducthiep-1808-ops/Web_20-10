@@ -102,6 +102,32 @@
       .logo .mark { width: 26px; height: 26px; font-size: .8rem; }
     }
 
+    /* ---------- Nút nhạc ---------- */
+    .music-btn {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      z-index: 20;
+      display: grid;
+      place-items: center;
+      width: 48px;
+      height: 48px;
+      font-size: 1.4rem;
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(8px);
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 6px 18px rgba(232, 69, 122, 0.18);
+      transition: transform .2s;
+    }
+    .music-btn:hover { transform: scale(1.08); }
+    .music-btn.playing span { animation: spin 4s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (max-width: 480px) {
+      .music-btn { top: 10px; right: 10px; width: 40px; height: 40px; font-size: 1.15rem; }
+    }
+
     /* Bỏ ô sáng khi chạm trên điện thoại */
     a, button, .envelope { -webkit-tap-highlight-color: transparent; }
 
@@ -379,6 +405,9 @@
     Đức Thiệp
   </a>
 
+  <audio id="bgm" src="music/noi-nay-co-anh.m4a" loop preload="auto"></audio>
+  <button class="music-btn" id="musicBtn" aria-label="Bật nhạc"><span>🎵</span></button>
+
   <main>
     <header class="hero">
       <div class="date">20/10</div>
@@ -509,6 +538,32 @@
     envelope.addEventListener('click', toggleLetter);
     envelope.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleLetter(); }
+    });
+
+    // Nhạc nền: trình duyệt chặn tự phát, nên phát ở lần chạm đầu tiên
+    const bgm = document.getElementById('bgm');
+    const musicBtn = document.getElementById('musicBtn');
+    bgm.volume = 0.6;
+    function syncMusicBtn() {
+      musicBtn.classList.toggle('playing', !bgm.paused);
+      musicBtn.querySelector('span').textContent = bgm.paused ? '🔇' : '🎵';
+      musicBtn.setAttribute('aria-label', bgm.paused ? 'Bật nhạc' : 'Tắt nhạc');
+    }
+    bgm.addEventListener('play', syncMusicBtn);
+    bgm.addEventListener('pause', syncMusicBtn);
+    musicBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      bgm.paused ? bgm.play() : bgm.pause();
+    });
+    bgm.play().catch(() => {
+      syncMusicBtn();
+      // Bỏ qua chạm vào nút nhạc, vì nút đó tự bật/tắt
+      const startOnce = (e) => {
+        if (e.target.closest('#musicBtn')) return;
+        document.removeEventListener('pointerdown', startOnce);
+        bgm.play().catch(() => {});
+      };
+      document.addEventListener('pointerdown', startOnce);
     });
 
     // Tim bay khi bấm bất kỳ đâu
